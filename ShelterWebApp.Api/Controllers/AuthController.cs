@@ -97,5 +97,30 @@ namespace ShelterCoordinationSystem.Controllers
 
             return Ok(new { Message = "Профиль успешно обновлен" });
         }
+
+        [HttpPost("profile/document")]
+        [Authorize(Roles = "Shelter")]
+        public async Task<IActionResult> UploadDocument([FromForm] IFormFile document)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim))
+            {
+                return Unauthorized(new { Message = "Пользователь не авторизован" });
+            }
+
+            if (document == null || document.Length == 0)
+            {
+                return BadRequest(new { Message = "Пожалуйста, выберите файл для загрузки" });
+            }
+
+            int shelterId = int.Parse(userIdClaim);
+            var result = await _authService.UploadShelterDocumentAsync(shelterId, document);
+            if (!result)
+            {
+                return BadRequest(new { Message = "Не удалось загрузить документ" });
+            }
+
+            return Ok(new { Message = "Документы успешно отправлены на проверку" });
+        }
     }
 }

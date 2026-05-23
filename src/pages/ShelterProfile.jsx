@@ -130,10 +130,41 @@ function ShelterProfile() {
     setShowSuccess(true);
   };
 
-  const handleDocSubmit = (e) => {
+  const handleDocSubmit = async (e) => {
     e.preventDefault();
     if (uploadedDocs.length === 0) return;
-    setShowDocSuccess(true);
+
+    const token = localStorage.getItem('token');
+    const bodyFormData = new FormData();
+    bodyFormData.append('document', uploadedDocs[0].file);
+
+    try {
+      const res = await fetch('/api/auth/profile/document', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: bodyFormData
+      });
+
+      if (res.ok) {
+        setShowDocSuccess(true);
+        // Очищаем форму от отправленных файлов
+        uploadedDocs.forEach(doc => {
+          if (doc.preview) URL.revokeObjectURL(doc.preview);
+        });
+        setUploadedDocs([]);
+        
+        // Локально обновляем статус верификации
+        updateUser({ isVerified: false });
+      } else {
+        const err = await res.json();
+        alert(err.message || err.Message || "Не удалось отправить документ на верификацию");
+      }
+    } catch (err) {
+      console.error("Ошибка при отправке документа:", err);
+      alert("Произошла ошибка связи с сервером при отправке документа");
+    }
   };
 
   if (!user || user.role !== 'shelter') return null;

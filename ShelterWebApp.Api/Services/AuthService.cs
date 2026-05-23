@@ -18,6 +18,7 @@ namespace ShelterCoordinationSystem.Services
         Task<string?> AdminLoginAsync(AdminLoginDto dto);
         Task<object?> GetProfileAsync(int userId, string role);
         Task<bool> UpdateProfileAsync(int userId, string role, UpdateProfileDto dto);
+        Task<bool> UploadShelterDocumentAsync(int shelterId, IFormFile document);
     }
 
     public class AuthService : IAuthService
@@ -236,6 +237,25 @@ namespace ShelterCoordinationSystem.Services
                 return true;
             }
             return false;
+        }
+
+        public async Task<bool> UploadShelterDocumentAsync(int shelterId, IFormFile document)
+        {
+            var shelter = await _context.Shelters.FirstOrDefaultAsync(s => s.Id == shelterId);
+            if (shelter == null) return false;
+
+            using var ms = new MemoryStream();
+            await document.CopyToAsync(ms);
+            
+            shelter.RegistrationDocumentsData = ms.ToArray();
+            shelter.RegistrationDocumentFileName = document.FileName;
+            shelter.RegistrationDocumentContentType = document.ContentType;
+            
+            // Сбрасываем IsVerified в false, чтобы приют отображался у админа на модерации
+            shelter.IsVerified = false;
+
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }
